@@ -47,9 +47,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   D3DXMATRIX Rotation;
 
   D3DXMatrixIdentity(&Rotation);
-  //D3DXMatrixRotationY(&Rotation, 0.5f);
+  D3DXMatrixRotationX(&Rotation, D3DX_PI / 4);
 
   D3DXMatrixIdentity(&Position);
+  D3DXMatrixTranslation(&Position, 0, 0.5f, 1.f);
   World = Rotation * Position;
 
   // View matrix

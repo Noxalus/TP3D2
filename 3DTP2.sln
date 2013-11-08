@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DTP", "3DTP\3DTP.vcxproj", "{DE93A2FE-E715-4488-AE16-61151DEB5C63}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3DTP2", "3DTP2\3DTP2.vcxproj", "{DE93A2FE-E715-4488-AE16-61151DEB5C63}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
