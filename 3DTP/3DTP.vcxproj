@@ -14,6 +14,7 @@
     <ProjectGuid>{DE93A2FE-E715-4488-AE16-61151DEB5C63}</ProjectGuid>
     <RootNamespace>My3DTP</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <ProjectName>3DTP2</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -88,14 +89,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="3DTP.cpp" />
+    <ClCompile Include="3DTP2.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="3DTP.h" />
+    <ClInclude Include="3DTP2.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
