@@ -318,7 +318,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			unsigned int cPasses, iPass;
 
-			
+
 			// Draw triangle
 			device->SetStreamSource(0, pVertexBuffer, 0, sizeof(Vertex));
 			device->SetIndices(pIndexBuffer);
@@ -327,12 +327,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			pEffect->Begin(&cPasses, 0);
 			for (iPass= 0; iPass< cPasses; ++iPass)
 			{
-			pEffect->BeginPass(iPass);
-			pEffect->CommitChanges(); // que si on a changé des états après le BeginPass
+				pEffect->BeginPass(iPass);
+				pEffect->CommitChanges(); // que si on a changé des états après le BeginPass
 
-			device->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, vertexCount, 0, 1);
+				device->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, 0, 0, vertexCount, 0, 1);
 
-			pEffect->EndPass();
+				pEffect->EndPass();
 			}
 
 			pEffect->End();
@@ -479,4 +479,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+unsigned short m_sizeX;
+unsigned short m_sizeZ;
+float m_maxY;
+float* m_height;
+bool LoadRAW (const std::string& map)
+{
+	FILE  *file;
+	fopen_s(&file, map.c_str (), "rb");
+	if (!file)
+		return false;
+	fread(&m_sizeX, sizeof(unsigned short), 1, file);
+	fread(&m_sizeZ, sizeof(unsigned short), 1, file);
+	unsigned int size = m_sizeX * m_sizeZ;
+	unsigned char *tmp = new unsigned char[size];
+	m_height = new float[size];
+	fread(tmp, sizeof(unsigned char), size, file);
+	fclose(file);
+	int i = 0;
+	for (unsigned short z = 0; z < m_sizeZ; ++z)
+		for (unsigned short x = 0; x < m_sizeX; ++x, ++i)
+			m_height[i] = float ((m_maxY * tmp[i]) / 255.0f);
+	delete[] tmp;
+	return true;
 }

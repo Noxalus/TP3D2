@@ -14,6 +14,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
-
+#include <string>
+#include <stdio.h>
 
 // TODO: reference additional headers (like DirectX one) your program requires here
