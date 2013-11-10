@@ -143,7 +143,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	//device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
 	// Wireframe ?
-	device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME );
+	//device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 
 	/** Vertex & Index buffers (Triangle) **/
 	// Vertex buffer
@@ -291,7 +291,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			if (heightValue < m_maxY / 3)
 				pMapVertexData[x + (m_sizeX * y)].Color = D3DCOLOR_RGBA(0, 0, 255, 0);
 			// Green
-			else if (heightValue > m_maxY / 3 && heightValue < 2 * (m_maxY / 3))
+			else if (heightValue >= m_maxY / 3 && heightValue <= 2 * (m_maxY / 3))
 				pMapVertexData[x + (m_sizeX * y)].Color = D3DCOLOR_RGBA(0, 255, 0, 0);
 			// Red
 			else
@@ -380,7 +380,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			*/
 
 
-			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 5);
+			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 10);
+			D3DXMatrixRotationY(&Rotation, D3DX_PI / 5);
 			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ - 1) / 2) + 100, 10);
 
 			World =  Rotation * Position;
