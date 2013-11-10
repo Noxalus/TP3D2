@@ -3,6 +3,7 @@
 #include "d3dx9.h"
 #include "3DTP2.h"
 #include <math.h>
+#include "InputManager.h"
 
 // Global Variables:
 HINSTANCE hInst;			// current instance
@@ -13,12 +14,42 @@ bool				CreateWindows(HINSTANCE, int);
 bool				CreateDevice();
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 
+// Input Manager
+InputManager* input;
+
+// Height map
+unsigned short m_sizeX;
+unsigned short m_sizeZ;
+float m_maxY = 50;
+float* m_height;
+
 // Structure d'un vertex
 struct Vertex
 {
 	D3DXVECTOR3 Position;
 	D3DCOLOR Color;
 };
+
+bool LoadRAW (const std::string& map)
+{
+	FILE  *file;
+	fopen_s(&file, map.c_str (), "rb");
+	if (!file)
+		return false;
+	fread(&m_sizeX, sizeof(unsigned short), 1, file);
+	fread(&m_sizeZ, sizeof(unsigned short), 1, file);
+	unsigned int size = m_sizeX * m_sizeZ;
+	unsigned char *tmp = new unsigned char[size];
+	m_height = new float[size];
+	fread(tmp, sizeof(unsigned char), size, file);
+	fclose(file);
+	int i = 0;
+	for (unsigned short z = 0; z < m_sizeZ; ++z)
+		for (unsigned short x = 0; x < m_sizeX; ++x, ++i)
+			m_height[i] = float ((m_maxY * tmp[i]) / 255.0f);
+	delete[] tmp;
+	return true;
+}
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -35,6 +66,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		return false;
 	}
 
+	// Input manager
+	input = new InputManager();
+	input->init(hInstance, hWnd);
+
 	D3DCOLOR backgroundColor = D3DCOLOR_RGBA(0, 0, 0, 0);
 
 	D3DXMATRIX WorldViewProj;
@@ -47,11 +82,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	D3DXMATRIX Rotation;
 
 	D3DXMatrixIdentity(&Rotation);
-	D3DXMatrixRotationX(&Rotation, D3DX_PI / 2);
-
 	D3DXMatrixIdentity(&Position);
-	D3DXMatrixTranslation(&Position, 0, 0, 10.f);
-	World = Rotation * Position;
+
+	World = Position * Rotation;
 
 	// View matrix
 	D3DXMATRIX View;
@@ -67,7 +100,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	float fovy = D3DX_PI / 2; // pi / 2
 	D3DXMatrixPerspectiveFovLH(&Projection, fovy, 1.3f, 0.1f, 1000.0f);
 
-	WorldViewProj = World * View * Projection;
+
 
 	// Création de l’interface DirectX 9
 	LPDIRECT3D9 pD3D = Direct3DCreate9(D3D_SDK_VERSION);
@@ -230,23 +263,39 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	pRectangleIndexBuffer->Unlock();
 
 	/** Vertex & Index buffers (Heightmap) **/
-	// Vertex buffer
-	int mapWidth = 10;
-	int mapHeight = 10;
+	// Load height map
+	LoadRAW("../Resources/terrainheight.raw");
 
+	/*
+	m_sizeX = 10;
+	m_sizeZ = 10;
+	*/
+
+	// Vertex buffer
 	IDirect3DVertexBuffer9* pMapVertexBuffer;
-	device->CreateVertexBuffer((mapWidth * mapHeight) * sizeof(Vertex), 0, 0, D3DPOOL_DEFAULT, &pMapVertexBuffer, NULL);
+	device->CreateVertexBuffer((m_sizeX * m_sizeZ) * sizeof(Vertex), 0, 0, D3DPOOL_DEFAULT, &pMapVertexBuffer, NULL);
 
 	Vertex* pMapVertexData;
 
 	pMapVertexBuffer->Lock(0, 0, (void**) &pMapVertexData, 0);
 
-	for(int x = 0; x < mapWidth; x++)
+	for(int x = 0; x < m_sizeX; x++)
 	{
-		for(int y = 0; y < mapHeight; y++)
+		for(int y = 0; y < m_sizeZ; y++)
 		{
-			pMapVertexData[x + (mapWidth * y)].Position = D3DXVECTOR3(x, 0, y);
-			pMapVertexData[x + (mapWidth * y)].Color = D3DCOLOR_RGBA(255, 0, 0, 0);
+			float heightValue = m_height[x + (m_sizeX * y)];
+
+			pMapVertexData[x + (m_sizeX * y)].Position = D3DXVECTOR3(x, heightValue, y);
+
+			// Blue
+			if (heightValue < m_maxY / 3)
+				pMapVertexData[x + (m_sizeX * y)].Color = D3DCOLOR_RGBA(0, 0, 255, 0);
+			// Green
+			else if (heightValue > m_maxY / 3 && heightValue < 2 * (m_maxY / 3))
+				pMapVertexData[x + (m_sizeX * y)].Color = D3DCOLOR_RGBA(0, 255, 0, 0);
+			// Red
+			else
+				pMapVertexData[x + (m_sizeX * y)].Color = D3DCOLOR_RGBA(255, 0, 0, 0);
 		}
 	}
 
@@ -254,29 +303,31 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	// Index buffer
 	IDirect3DIndexBuffer9* pMapIndexBuffer;
-	device->CreateIndexBuffer(6 * (mapWidth * mapHeight) * sizeof(int), 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &pMapIndexBuffer, NULL);
+	device->CreateIndexBuffer(6 * (m_sizeX * m_sizeZ) * sizeof(int), 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &pMapIndexBuffer, NULL);
 
 	int* pMapIndexData;
 	pMapIndexBuffer->Lock(0, 0, (void**) &pMapIndexData, 0);
 
 
 	int counter = 0;
-	for(int y = 0; y < mapHeight - 1; y++)
+	for(int y = 0; y < m_sizeZ - 1; y++)
 	{
-		for(int x = 0; x < mapWidth - 1; x++)
+		for(int x = 0; x < m_sizeX - 1; x++)
 		{
-			pMapIndexData[counter] = x + (mapWidth * y);
+			// First triangle
+			pMapIndexData[counter] = x + (m_sizeX * (y + 1));
 			counter++;
-			pMapIndexData[counter] = (x + 1) + (mapWidth * y);
+			pMapIndexData[counter] = (x + 1) + (m_sizeX * y);
 			counter++;
-			pMapIndexData[counter] = x + (mapWidth * (y + 1));
+			pMapIndexData[counter] = x + (m_sizeX * y);
 			counter++;
 
-			pMapIndexData[counter] = (x + 1) + (mapWidth * y);
+			// Second triangle
+			pMapIndexData[counter] = (x + 1) + (m_sizeX * (y + 1));
 			counter++;
-			pMapIndexData[counter] = (x + 1) + (mapWidth * (y + 1));
+			pMapIndexData[counter] = (x + 1) + (m_sizeX * y);
 			counter++;
-			pMapIndexData[counter] = x + (mapWidth * (y + 1));
+			pMapIndexData[counter] = x + (m_sizeX * (y + 1));
 			counter++;
 		}
 	}
@@ -306,6 +357,36 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 		else
 		{
+			/*
+			// Update the input state
+			if (input->keyDown(DIK_LEFT)){
+			D3DXMatrixTranslation(&Position, -1, 0, 0);
+			}
+			if (input->keyDown(DIK_RIGHT)){
+			D3DXMatrixTranslation(&Position, 1, 0, 0);
+			}
+			if (input->keyDown(DIK_UP)){
+			}
+			if (input->keyDown(DIK_DOWN)){
+			}
+
+			//D3DXMatrixRotationX(&Rotation, -D3DX_PI / 4);
+			*/
+
+			// Top view
+			/*
+			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 2);
+			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ + 5) / 2), -4);
+			*/
+
+
+			D3DXMatrixRotationX(&Rotation, -D3DX_PI / 5);
+			D3DXMatrixTranslation(&Position, -((m_sizeX - 1) / 2), -((m_sizeZ - 1) / 2) + 100, 10);
+
+			World =  Rotation * Position;
+
+			WorldViewProj = World * View * Projection;
+
 			// Do a lot of thing like draw triangles with DirectX
 			device->Clear(0, NULL, D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER, backgroundColor, 1.0f, 0);
 			device->BeginScene();
@@ -318,8 +399,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			unsigned int cPasses, iPass;
 
-
 			// Draw triangle
+			/*
 			device->SetStreamSource(0, pVertexBuffer, 0, sizeof(Vertex));
 			device->SetIndices(pIndexBuffer);
 
@@ -336,6 +417,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			}
 
 			pEffect->End();
+			*/
 			/*
 			// Draw circle
 			device->SetStreamSource(0, pCircleVertexBuffer, 0, sizeof(Vertex));
@@ -385,7 +467,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 				pEffect->BeginPass(iPass);
 				pEffect->CommitChanges(); // que si on a changé des états après le BeginPass
 
-				device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 2 * (mapWidth * mapHeight), 0, 2 * ((mapWidth * mapHeight) - 1));
+				device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 2 * (m_sizeX * m_sizeZ), 0, 2 * ((m_sizeX * m_sizeZ) - 1));
 
 				pEffect->EndPass();
 			}
@@ -479,29 +561,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
-}
-
-unsigned short m_sizeX;
-unsigned short m_sizeZ;
-float m_maxY;
-float* m_height;
-bool LoadRAW (const std::string& map)
-{
-	FILE  *file;
-	fopen_s(&file, map.c_str (), "rb");
-	if (!file)
-		return false;
-	fread(&m_sizeX, sizeof(unsigned short), 1, file);
-	fread(&m_sizeZ, sizeof(unsigned short), 1, file);
-	unsigned int size = m_sizeX * m_sizeZ;
-	unsigned char *tmp = new unsigned char[size];
-	m_height = new float[size];
-	fread(tmp, sizeof(unsigned char), size, file);
-	fclose(file);
-	int i = 0;
-	for (unsigned short z = 0; z < m_sizeZ; ++z)
-		for (unsigned short x = 0; x < m_sizeX; ++x, ++i)
-			m_height[i] = float ((m_maxY * tmp[i]) / 255.0f);
-	delete[] tmp;
-	return true;
 }
